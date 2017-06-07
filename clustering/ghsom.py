@@ -2,37 +2,38 @@ import numpy as np
 import pandas as pd
 from som import SOM
 #-----------------------------------Data pre-process-------------------------------------------------------
-# get  training data
-df = pd.read_excel('../data/WPG_data_test.xlsx')
-
-# -----------------------------------input data random pre-process------------------------------------
-df_ran = df.sample(frac=1)
-
-# define which title to be noimal
-df_nominal = df_ran.ix[:, ['Report Date', 'Customer', 'Type','Item Short Name', 'Brand', 'Sales']]
-df_numerical_tmp = df_ran.ix[:, ['OH WK', 'OH FCST WK', 'BL WK', 'BL FCST WK', 'Last BL', 'Backlog', 'BL <= 9WKs', 'DC OH', 'On the way', 'Hub OH', 'Others OH', 'Avail.', 'Actual WK', 'FCST WK', 'Actual AWU', 'FCST AWU', 'FCST M', 'FCST M1', 'FCST M2', 'FCST M3']]
-df_numerical = df_numerical_tmp.apply(pd.to_numeric, errors='coerce').fillna(-1)
-
-
-
-# get data dim to latter SOM prcess
-input_dim = len(df_numerical.columns)
-input_num = len(df_numerical.index)
-
-
-# -----------------------------------input data random pre-process------------------------------------
-# change data to np array (SOM accept nparray format)
-input_data = np.array(df_numerical)
-# input_data = np.array([[2., 1., 1., 1., 3.],
-#                        [2., 1., 0., 0., 3.],
-#                        [2., 1., 0., 1., 2.],
-#                        [2., 1., 0., 1., 3.],
-#                        [4., 0., 0., 0., 2.],
-#                        [4., 0., 1., 0., 1.],
-#                        [4., 0., 1., 0., 3.],
-#                        [4., 0., 1., 0., 2.],
-#                        [0., 0., 1., 0., 3.],
-#                        [0., 0., 1., 0., 2.]])
+# # get  training data
+# df = pd.read_excel('../data/WPG_data_test.xlsx')
+#
+# # -----------------------------------input data random pre-process------------------------------------
+# df_ran = df.sample(frac=1)
+#
+# # define which title to be noimal
+# df_nominal = df_ran.ix[:, ['Report Date', 'Customer', 'Type','Item Short Name', 'Brand', 'Sales']]
+# df_numerical_tmp = df_ran.ix[:, ['OH WK', 'OH FCST WK', 'BL WK', 'BL FCST WK', 'Last BL', 'Backlog', 'BL <= 9WKs', 'DC OH', 'On the way', 'Hub OH', 'Others OH', 'Avail.', 'Actual WK', 'FCST WK', 'Actual AWU', 'FCST AWU', 'FCST M', 'FCST M1', 'FCST M2', 'FCST M3']]
+# df_numerical = df_numerical_tmp.apply(pd.to_numeric, errors='coerce').fillna(-1)
+#
+#
+#
+# # get data dim to latter SOM prcess
+# input_dim = len(df_numerical.columns)
+# input_num = len(df_numerical.index)
+#
+#
+# # -----------------------------------input data random pre-process------------------------------------
+# # change data to np array (SOM accept nparray format)
+# input_data = np.array(df_numerical)
+input_data = np.array([[2., 1., 1., 1., 3.],
+                       [2., 1., 0., 0., 3.],
+                       [2., 1., 0., 1., 2.],
+                       [2., 1., 0., 1., 3.],
+                       [4., 0., 0., 0., 2.],
+                       [4., 0., 1., 0., 1.],
+                       [4., 0., 1., 0., 3.],
+                       [4., 0., 1., 0., 2.],
+                       [0., 0., 1., 0., 3.],
+                       [0., 0., 1., 0., 2.]])
+input_dim = 5
 # input_data = np.array([[10., 5., 5., 5., 15.],
 #                        [10., 5., 0., 0., 15.],
 #                        [10., 5., 0., 5., 10.],
