@@ -1,8 +1,28 @@
-import tensorflow as tf
 import numpy as np
-import datetime
+import pandas as pd
 from som import SOM
+#-----------------------------------Data pre-process-------------------------------------------------------
+# get  training data
+df = pd.read_excel('../data/WPG_data_test.xlsx')
 
+# -----------------------------------input data random pre-process------------------------------------
+df_ran = df.sample(frac=1)
+
+# define which title to be noimal
+df_nominal = df_ran.ix[:, ['Report Date', 'Customer', 'Type','Item Short Name', 'Brand', 'Sales']]
+df_numerical_tmp = df_ran.ix[:, ['OH WK', 'OH FCST WK', 'BL WK', 'BL FCST WK', 'Last BL', 'Backlog', 'BL <= 9WKs', 'DC OH', 'On the way', 'Hub OH', 'Others OH', 'Avail.', 'Actual WK', 'FCST WK', 'Actual AWU', 'FCST AWU', 'FCST M', 'FCST M1', 'FCST M2', 'FCST M3']]
+df_numerical = df_numerical_tmp.apply(pd.to_numeric, errors='coerce').fillna(-1)
+
+
+
+# get data dim to latter SOM prcess
+input_dim = len(df_numerical.columns)
+input_num = len(df_numerical.index)
+
+
+# -----------------------------------input data random pre-process------------------------------------
+# change data to np array (SOM accept nparray format)
+input_data = np.array(df_numerical)
 # input_data = np.array([[2., 1., 1., 1., 3.],
 #                        [2., 1., 0., 0., 3.],
 #                        [2., 1., 0., 1., 2.],
@@ -13,16 +33,16 @@ from som import SOM
 #                        [4., 0., 1., 0., 2.],
 #                        [0., 0., 1., 0., 3.],
 #                        [0., 0., 1., 0., 2.]])
-input_data = np.array([[10., 5., 5., 5., 15.],
-                       [10., 5., 0., 0., 15.],
-                       [10., 5., 0., 5., 10.],
-                       [10., 5., 0., 5., 15.],
-                       [20., 0., 0., 0., 10.],
-                       [20., 0., 5., 0., 5.],
-                       [20., 0., 5., 0., 15.],
-                       [20., 0., 5., 0., 10.],
-                       [0., 0., 5., 0., 15.],
-                       [0., 0., 5., 0., 10.]])
+# input_data = np.array([[10., 5., 5., 5., 15.],
+#                        [10., 5., 0., 0., 15.],
+#                        [10., 5., 0., 5., 10.],
+#                        [10., 5., 0., 5., 15.],
+#                        [20., 0., 0., 0., 10.],
+#                        [20., 0., 5., 0., 5.],
+#                        [20., 0., 5., 0., 15.],
+#                        [20., 0., 5., 0., 10.],
+#                        [0., 0., 5., 0., 15.],
+#                        [0., 0., 5., 0., 10.]])
 
 # calculate mqe with input,  if no result_index then cal mqe with all input
 # @param result_index: python list format
@@ -137,7 +157,7 @@ def get_dissimilar_weight_location(topology_map, error_unit_index, neighborhood_
     return dissimilar_weight_location, dissimilar_weight_location_index
 
 
-def insert_units(m, slice_point, weight_topology_map):
+def insert_units(slice_point, weight_topology_map):
     print('------after insertation -------')
     units_to_be_inserted = np.divide(np.add(np.take(weight_topology_map, slice_point, 0), np.take(weight_topology_map, slice_point-1, 0)), 2)
     new_weight_topology_map = np.insert(weight_topology_map, slice_point, units_to_be_inserted, 0)
@@ -145,10 +165,12 @@ def insert_units(m, slice_point, weight_topology_map):
     return new_weight_topology_map
 
 
-def get_map_weight_after_unit_insertion(m, n, topology_map, error_unit_location, error_unit_index, dissimilar_weight_location, dissimilar_weight_location_index, trained_weight):
+def get_map_weight_after_unit_insertion(m, n, topology_map, error_unit_location, error_unit_index, dissimilar_weight_location, dissimilar_weight_location_index, trained_weight, input_dim):
     print('-----------get_map_weight_before_unit_insertion----------')
     print(trained_weight)
     print(topology_map)
+    # print(error_unit_location)
+    # print(dissimilar_weight_location)
 
     # check which layer should be insert
     if error_unit_index > dissimilar_weight_location_index:
@@ -159,9 +181,9 @@ def get_map_weight_after_unit_insertion(m, n, topology_map, error_unit_location,
     # check insert row or column
     if  np.argmax(np.absolute(np.subtract(error_unit_location, dissimilar_weight_location))) == 1:
         # insert one row
-        print('insert row')
+        print('insert row - add y direction')
 
-        # check if slice point equal 0 if 0 then return 1
+        # slice point rem
         print('slice_point')
         slice_point = slice_point%n
 
@@ -177,21 +199,24 @@ def get_map_weight_after_unit_insertion(m, n, topology_map, error_unit_location,
             new_order = np.append(new_order, np.where(trained_weight_remainder == i)[0])
 
         new_order = new_order.astype(int)
+        # print('-----------new_order-----------')
+        # print(new_order)
         # print(new_order)
         weight_topology_map  = trained_weight[new_order,:][:].reshape(n, m, -1).astype(np.float32)
 
-        print('------default_weight_topology_map----------')
-        print(weight_topology_map)
+        # print('------default_weight_topology_map----------')
+        # print(weight_topology_map)
 
-        new_weight_topology_map = insert_units(m, slice_point, weight_topology_map)
-        print('------new_weight_topology_map-------')
-        print(new_weight_topology_map)
+        new_weight_topology_map = insert_units(slice_point, weight_topology_map)
+        # print('------new_weight_topology_map-------')
+        # print(new_weight_topology_map)
 
-        print('---------reshape back to default weight result-----------')
+
         # reformat back to generator order
         # TODO: number 5 in reshpae must be equal to input_data ttribute length
-        new_weight_after_insertion = np.swapaxes(new_weight_topology_map,0,1).reshape(-1, 5).astype(np.float32)
-        print(new_weight_after_insertion)
+        new_weight_after_insertion = np.swapaxes(new_weight_topology_map,0,1).reshape(-1, input_dim).astype(np.float32)
+        # print('---------reshape back to default weight result-----------')
+        # print(new_weight_after_insertion)
 
         # add row to initial
         new_n = n+1
@@ -200,7 +225,7 @@ def get_map_weight_after_unit_insertion(m, n, topology_map, error_unit_location,
 
     else:
         # insert one column
-        print('insert column')
+        print('insert column - add x dirction')
 
         # check if slice point equal 0 if 0 then return 1
         print('slice_point')
@@ -213,15 +238,16 @@ def get_map_weight_after_unit_insertion(m, n, topology_map, error_unit_location,
         print('-----------AfterReshape-----------')
         # todo : this 5 must be input_data attribute lengths
         weight_topology_map = trained_weight.reshape((m,n,-1))
-        print('------default_weight_topology_map')
-        print(weight_topology_map)
-        new_weight_topology_map = insert_units(n, slice_point, weight_topology_map)
-        print('------new_weight_topology_map-------')
-        print(new_weight_topology_map)
+        # print('------default_weight_topology_map')
+        # print(weight_topology_map)
+        new_weight_topology_map = insert_units(slice_point, weight_topology_map)
+        # print('------new_weight_topology_map-------')
+        # print(new_weight_topology_map)
 
-        print('---------reshape back to default weight result-----------')
-        new_weight_after_insertion = new_weight_topology_map.reshape(-1, 5).astype(np.float32)
-        print(new_weight_after_insertion)
+        # print('---------reshape back to default weight result-----------')
+        # print(new_weight_after_insertion)
+        new_weight_after_insertion = new_weight_topology_map.reshape(-1, input_dim).astype(np.float32)
+
 
         new_m = m+1
 
@@ -229,7 +255,7 @@ def get_map_weight_after_unit_insertion(m, n, topology_map, error_unit_location,
 
 
 
-def check_tau2_condition (clustered_result_by_index, input_data, reault_mqe, mqe0):
+def check_tau2_condition (clustered_result_by_index, input_data, reault_mqe, mqe0, input_dim):
     tau2 = 0.05
     print('---------------tau2*mqe0--------------')
     print(tau2*mqe0)
@@ -245,7 +271,10 @@ def check_tau2_condition (clustered_result_by_index, input_data, reault_mqe, mqe
             m = 2
             n = 2
 
-            check_tau1_condition(m, n, mqe0, new_input_that_not_satisfy_tau2_condition)
+            new_mqe0 = each_mqe
+            print(new_mqe0)
+
+            check_tau1_condition(m, n, new_mqe0, new_input_that_not_satisfy_tau2_condition, input_dim)
     # for i in range(0,6):
     #
     #     if  reault_mqe[i] < tau2*mqe0:
@@ -265,20 +294,18 @@ def check_tau2_condition (clustered_result_by_index, input_data, reault_mqe, mqe
 
 
 
-def check_tau1_condition (m, n,  mqe0, input_data):
+def check_tau1_condition (m, n,  mqe0, input_data, dim):
 
-    tau1=0.1
+    tau1=0.08
 
     tau1_iter_time = 1
 
-    mqe =[mqe0]
-
     # if not satisfy then call som
-    trained_weight, som_result_map = call_som(m, n, 5, input_data)
+    trained_weight, som_result_map = call_som(m, n, dim, input_data)
     # find inputs in each unit
     clustered_result_by_index = clustered_location_input_index(m, n, trained_weight, som_result_map, input_data)
-    print('input that belong to same cluster:')
-    print(clustered_result_by_index)
+    # print('input that belong to same cluster:')
+    # print(clustered_result_by_index)
     mqe = cal_clustered_mqe(input_data, clustered_result_by_index)
     print('each unit mqe:')
     print(mqe)
@@ -299,7 +326,7 @@ def check_tau1_condition (m, n,  mqe0, input_data):
             print(m)
             print('n:')
             print(n)
-            check_tau2_condition(clustered_result_by_index, input_data, mqe, mqe0)
+            check_tau2_condition(clustered_result_by_index, input_data, mqe, mqe0, dim)
             break
 
         else:
@@ -310,22 +337,22 @@ def check_tau1_condition (m, n,  mqe0, input_data):
             error_unit_index = np.argmax(mqe)
             loaciton_map = np.array(list(som_neuron_locations(m, n)))
             error_unit_location = np.take(loaciton_map, error_unit_index, 0)
-            print('error_unit_location:')
-            print(error_unit_location)
+            # print('error_unit_location:')
+            # print(error_unit_location)
 
             neighborhood_location_index = find_neighborhood_location(topology_map, m, n, error_unit_location)
             print('dissimilar_weight_location:')
             dissimilar_weight_location, dissimilar_weight_location_index = get_dissimilar_weight_location(topology_map, error_unit_index, neighborhood_location_index, trained_weight)
             print(dissimilar_weight_location)
             # insert Unit
-            new_weight_after_insertion, m, n = get_map_weight_after_unit_insertion(m, n, topology_map, error_unit_location, error_unit_index, dissimilar_weight_location, dissimilar_weight_location_index, trained_weight)
-            print('second time SOM:')
+            new_weight_after_insertion, m, n = get_map_weight_after_unit_insertion(m, n, topology_map, error_unit_location, error_unit_index, dissimilar_weight_location, dissimilar_weight_location_index, trained_weight, dim)
+            print('re-call SOM:')
             print(m)
             print(n)
-            print(new_weight_after_insertion)
+            # print(new_weight_after_insertion)
 
             # 2,3,4.... SOM call
-            trained_weight, som_result_map = call_som(m, n, 5, input_data, new_weight_after_insertion)
+            trained_weight, som_result_map = call_som(m, n, dim, input_data, new_weight_after_insertion)
 
             # find how many input in each unit
             clustered_result_by_index = clustered_location_input_index(m, n, trained_weight, som_result_map, input_data)
@@ -341,8 +368,8 @@ def check_tau1_condition (m, n,  mqe0, input_data):
 mqe0 = cal_clustered_mqe(input_data)
 print(mqe0)
 # m => x direction, n => y direction
-m = 2
-n = 2
+m = 3
+n = 3
 
 
-check_tau1_condition(m, n, mqe0, input_data)
+check_tau1_condition(m, n, mqe0, input_data, input_dim)

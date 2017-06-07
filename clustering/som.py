@@ -200,8 +200,8 @@ class SOM(object):
             # print('LoopNo: ' + str(iter_no) + ' - Time: ' + str(datetime.datetime.now().time()))
             #Train with each vector one by one
         iter_no = 1
+        print('SOM-Start')
         for input_vect in input_vects:
-            print(iter_no)
             self._sess.run(self._training_op,
                            feed_dict={self._vect_input: input_vect,
                                       self._iter_input: iter_no})
@@ -221,7 +221,7 @@ class SOM(object):
         self._centroid_grid = centroid_grid
 
         self._trained = True
-
+        print('SOM-finish')
         return np.array(self._weightages)
 
     # def get_centroids(self):
